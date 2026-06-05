@@ -16,6 +16,9 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - run: pytest -q
+        working-directory: .
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
   frontend:
     runs-on: ubuntu-latest
