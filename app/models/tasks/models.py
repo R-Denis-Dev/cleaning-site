@@ -23,3 +23,4 @@ class Task(Base):
     day_of_week = Column(Integer, nullable=False)
     name = Column(String, nullable=False)
     is_done = Column(Boolean, default=False, nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)

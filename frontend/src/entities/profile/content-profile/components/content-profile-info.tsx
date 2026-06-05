@@ -1,4 +1,5 @@
-import { Schedule } from "../../types/profile";
+import { Schedule } from '../../types/profile';
+import { WEEKDAY_SHORT } from '@/utils/constants';
 
 interface Props {
   days: string[];
@@ -8,27 +9,39 @@ interface Props {
 
 export const InfoProfile = ({ days, myDayIndex, schedules }: Props) => {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 md:p-5">
-      <p className="text-sm text-slate-300 mb-3">Ваш день уборки</p>
-      <p className="text-lg font-semibold text-slate-100 mb-4">
-        {myDayIndex !== null
-          ? days[myDayIndex]
-          : "Вы ещё не выбрали день в расписании"}
+    <div className="card-shell p-4 md:p-5">
+      <p className="text-sm text-muted mb-3">Ваш день уборки</p>
+      <p className="text-lg font-semibold text-heading mb-4">
+        {myDayIndex !== null ? days[myDayIndex] : 'Вы ещё не выбрали день в расписании'}
       </p>
 
-      <p className="text-sm text-slate-300 mb-2">Занятость по дням</p>
+      <p className="text-sm text-muted mb-2">Занятость по дням</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {days.map((day, index) => {
           const schedule = schedules.find((s) => s.day_of_week === index);
-          const label = schedule?.username ?? "Свободно";
+          const label = schedule?.username ?? 'Свободно';
+          const isMine = myDayIndex === index;
 
           return (
             <div
               key={day}
-              className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700"
+              className={`flex items-center justify-between px-3 py-2 rounded-xl border ${
+                isMine
+                  ? 'bg-sky-50 border-sky-200 dark:bg-sky-600/20 dark:border-sky-500/50'
+                  : 'list-item-shell'
+              }`}
             >
-              <span className="text-sm text-slate-100">{day}</span>
-              <span className="text-xs text-slate-300">{label}</span>
+              <span className="text-sm font-medium text-body shrink-0">
+                {WEEKDAY_SHORT[index] ?? day.slice(0, 2)}
+              </span>
+              <span
+                className={`text-xs text-right truncate max-w-[55%] ${
+                  isMine ? 'text-sky-700 dark:text-sky-200 font-medium' : 'text-muted'
+                }`}
+                title={label}
+              >
+                {label}
+              </span>
             </div>
           );
         })}

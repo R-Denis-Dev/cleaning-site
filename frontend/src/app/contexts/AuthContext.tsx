@@ -5,7 +5,8 @@ import { User } from '@/types/user';
 interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
-  login: (username: string, password: string) => Promise<boolean>;
+  refreshUser: () => Promise<void>;
+  login: (username: string, password: string) => Promise<User | null>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -37,7 +38,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchCurrentUser();
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const refreshUser = async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setUser(null);
+      return;
+    }
+    try {
+      const res = await api.get<User>('/users/me');
+      setUser(res.data);
+    } catch {
+      setUser(null);
+      localStorage.removeItem('access_token');
+    }
+  };
+
+  const login = async (username: string, password: string): Promise<User | null> => {
     try {
       const formData = new URLSearchParams();
       formData.append('username', username);
@@ -54,9 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem('access_token', access_token);
       setUser(userData);
-      return true;
-    } catch (error: any) {
-      return false;
+      return userData;
+    } catch {
+      return null;
     }
   };
 
@@ -67,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, setUser, login, logout, isLoading, isAuthenticated: !!user }}
+      value={{ user, setUser, refreshUser, login, logout, isLoading, isAuthenticated: !!user }}
     >
       {children}
     </AuthContext.Provider>

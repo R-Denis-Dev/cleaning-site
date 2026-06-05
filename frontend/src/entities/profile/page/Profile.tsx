@@ -1,46 +1,35 @@
-// src/entities/profile/page/Profile.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/app/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import api from '@/api/client';
-import { HeaderProfile } from '@/entities/profile/page/components/header-profile';
-import { Schedule, Task } from '../types/profile';
-import { ContentProfile } from '../content-profile/content-profile';
+import toast from 'react-hot-toast';
 
-const DAYS = [
-  'Понедельник',
-  'Вторник',
-  'Среда',
-  'Четверг',
-  'Пятница',
-  'Суббота',
-  'Воскресенье',
-];
+import api from '@/api/client';
+import { AdminHeader } from '@/components/AdminHeader';
+import { AppContainer } from '@/components/layout/AppContainer';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { WEEKDAYS } from '@/utils/constants';
+import { getApiErrorMessage } from '@/utils/apiError';
+import { ProfileSettings } from '../components/ProfileSettings';
+import { ContentProfile } from '../content-profile/content-profile';
+import { HeaderProfile } from './components/header-profile';
+import { Schedule, Task, TaskListPayload } from '../types/profile';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [canToggle, setCanToggle] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingTasks, setLoadingTasks] = useState(false);
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-slate-200 text-xl">Загружаем профиль...</div>
-      </div>
-    );
-  }
-
-  // индекс дня, который занят текущим пользователем (если есть)
   const myDayIndex = useMemo(() => {
+    if (!user) return null;
     const mySchedule = schedules.find(
       (s) => s.is_taken && s.username && s.username === user.username,
     );
     return mySchedule ? mySchedule.day_of_week : null;
-  }, [schedules, user.username]);
+  }, [schedules, user]);
 
   const loadSchedules = async () => {
     const res = await api.get<Schedule[]>('/schedules/');
@@ -50,30 +39,37 @@ export default function Profile() {
   const loadTasksForDay = async (dayIndex: number) => {
     setLoadingTasks(true);
     try {
-      const res = await api.get<{ day_of_week: number; tasks: Task[] }>(
-        `/tasks/${dayIndex}`,
-      );
+      const res = await api.get<TaskListPayload>(`/tasks/${dayIndex}`);
       setTasks(res.data.tasks);
+      setCanToggle(res.data.can_toggle ?? false);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Не удалось загрузить задачи'));
     } finally {
       setLoadingTasks(false);
     }
   };
 
-  // начальная загрузка расписания
   useEffect(() => {
     const load = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
+      if (!localStorage.getItem('access_token')) {
         setLoading(false);
         return;
       }
-      await loadSchedules();
-      setLoading(false);
+      if (user?.is_admin) {
+        setLoading(false);
+        return;
+      }
+      try {
+        await loadSchedules();
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, 'Не удалось загрузить профиль'));
+      } finally {
+        setLoading(false);
+      }
     };
     load();
-  }, []);
+  }, [user?.is_admin]);
 
-  // когда меняется мой день — подгружаем задачи
   useEffect(() => {
     if (myDayIndex === null) {
       setTasks([]);
@@ -82,39 +78,59 @@ export default function Profile() {
     loadTasksForDay(myDayIndex);
   }, [myDayIndex]);
 
-  if (loading) {
+  const toggleTask = async (taskId: number) => {
+    try {
+      await api.post(`/tasks/${taskId}/toggle`);
+      if (myDayIndex !== null) {
+        await loadTasksForDay(myDayIndex);
+        const me = await api.get('/users/me');
+        setUser(me.data);
+      }
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Не удалось обновить задачу'));
+    }
+  };
+
+  if (loading || !user) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-slate-200 text-xl">Загружаем профиль...</div>
+      <div className="page-shell flex items-center justify-center">
+        <div className="text-muted text-xl animate-pulse">Загружаем профиль...</div>
       </div>
     );
   }
 
+  const isAdmin = user.is_admin;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      <div className="max-w-4xl mx-auto px-6 py-10">
-        <div className="max-w-3xl mx-auto px-4 py-6">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="mb-6 inline-flex items-center text-sm text-slate-300 hover:text-white transition-colors"
-          >
-            ← Назад к панели
-          </button>
+    <div className="page-shell min-h-screen flex flex-col">
+      {isAdmin && <AdminHeader />}
+      <AppContainer className="py-6 md:py-8 lg:py-10 flex-1">
+        <button
+          type="button"
+          onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}
+          className="mb-6 inline-flex items-center text-sm text-muted hover:text-heading"
+        >
+          ← {isAdmin ? 'К админ-панели' : 'Назад к панели'}
+        </button>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 md:p-10">
-            <HeaderProfile user={user} myDayIndex={myDayIndex} tasks={tasks} days={DAYS} />
+        <div className="card-shell p-5 sm:p-6 md:p-8 lg:p-10 max-w-3xl mx-auto">
+          <HeaderProfile user={user} myDayIndex={myDayIndex} tasks={tasks} days={[...WEEKDAYS]} />
 
+          {!isAdmin && (
             <ContentProfile
               myDayIndex={myDayIndex}
               schedules={schedules}
               loadingTasks={loadingTasks}
               tasks={tasks}
-              days={DAYS}
-              loadTasksForDay={loadTasksForDay}
+              days={[...WEEKDAYS]}
+              canToggle={canToggle}
+              onToggleTask={toggleTask}
             />
-          </div>
+          )}
+
+          <ProfileSettings />
         </div>
-      </div>
+      </AppContainer>
     </div>
   );
 }

@@ -1,0 +1,16 @@
+{
+  "name": "Cleaning App",
+  "short_name": "Уборка",
+  "description": "Расписание уборки в общежитии",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

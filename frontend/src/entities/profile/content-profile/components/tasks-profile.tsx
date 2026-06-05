@@ -1,58 +1,66 @@
-// src/entities/profile/content-profile/components/tasks-profile.tsx
-import { Task } from "../../types/profile";
+import { Task } from '../../types/profile';
 
 interface TasksProfileProps {
   tasks: Task[];
   loadingTasks: boolean;
-  onToggleTask: (taskId: number) => void; // ← добавили
+  canToggle: boolean;
+  onToggleTask: (taskId: number) => void;
 }
 
 export const TasksProfile = ({
   tasks,
   loadingTasks,
+  canToggle,
   onToggleTask,
 }: TasksProfileProps) => {
   if (loadingTasks) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 md:p-5">
-        <p className="text-sm text-slate-300">Загружаем задачи...</p>
+      <div className="card-shell p-4 md:p-5">
+        <p className="text-sm text-muted animate-pulse">Загружаем задачи...</p>
       </div>
     );
   }
 
   if (!tasks.length) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 md:p-5">
-        <p className="text-sm text-slate-400">На сегодня задач нет.</p>
+      <div className="card-shell p-4 md:p-5">
+        <p className="text-sm text-muted">На ваш день задач пока нет.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 md:p-5">
-      <p className="text-sm text-slate-300 mb-3">Ваши задачи на день</p>
+    <div className="card-shell p-4 md:p-5">
+      <p className="text-sm text-muted mb-1">Ваши задачи на день</p>
+      {!canToggle && (
+        <p className="text-xs text-amber-700 dark:text-amber-400/90 mb-3">
+          Отмечать задачи можно в день, закреплённый за вами в расписании
+        </p>
+      )}
       <ul className="space-y-2">
         {tasks.map((task) => (
           <li
             key={task.id}
-            className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700"
+            className="flex items-center justify-between px-3 py-2 rounded-xl list-item-shell"
           >
             <button
+              type="button"
+              disabled={!canToggle}
               onClick={() => onToggleTask(task.id)}
-              className="flex items-center gap-3 text-left flex-1"
+              className={`flex items-center gap-3 text-left flex-1 ${
+                canToggle ? '' : 'opacity-60 cursor-not-allowed'
+              }`}
             >
               <span
-                className={`h-4 w-4 rounded-full border ${
+                className={`h-4 w-4 rounded-full border shrink-0 ${
                   task.is_done
-                    ? "bg-emerald-500 border-emerald-400"
-                    : "border-slate-500"
+                    ? 'bg-emerald-500 border-emerald-400'
+                    : 'border-slate-400 dark:border-slate-500'
                 }`}
               />
               <span
                 className={`text-sm ${
-                  task.is_done
-                    ? "line-through text-slate-400"
-                    : "text-slate-100"
+                  task.is_done ? 'line-through text-muted' : 'text-body'
                 }`}
               >
                 {task.name}

@@ -20,4 +20,5 @@ export interface Notification {
   type: string;
   message: string;
   timestamp?: string;
+  data?: Record<string, unknown>;
 }

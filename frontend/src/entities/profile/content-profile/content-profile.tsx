@@ -1,8 +1,6 @@
-import api from "@/api/client";
-import { useAuth } from "@/app/contexts/AuthContext";
-import { Schedule, Task } from "../types/profile";
-import { InfoProfile } from "./components/content-profile-info";
-import { TasksProfile } from "./components/tasks-profile";
+import { Schedule, Task } from '../types/profile';
+import { InfoProfile } from './components/content-profile-info';
+import { TasksProfile } from './components/tasks-profile';
 
 interface Props {
   myDayIndex: number | null;
@@ -10,7 +8,8 @@ interface Props {
   loadingTasks: boolean;
   tasks: Task[];
   days: string[];
-  loadTasksForDay: (dayIndex: number) => Promise<void>;
+  canToggle: boolean;
+  onToggleTask: (taskId: number) => void;
 }
 
 export const ContentProfile = ({
@@ -19,17 +18,9 @@ export const ContentProfile = ({
   loadingTasks,
   tasks,
   days,
-  loadTasksForDay,
+  canToggle,
+  onToggleTask,
 }: Props) => {
-  const { } = useAuth();
-
-  const toggleTask = async (taskId: number) => {
-    await api.post(`/tasks/${taskId}/toggle`);
-    if (myDayIndex !== null) {
-      await loadTasksForDay(myDayIndex);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <InfoProfile days={days} myDayIndex={myDayIndex} schedules={schedules} />
@@ -37,7 +28,8 @@ export const ContentProfile = ({
       <TasksProfile
         tasks={tasks}
         loadingTasks={loadingTasks}
-        onToggleTask={toggleTask}
+        canToggle={canToggle}
+        onToggleTask={onToggleTask}
       />
     </div>
   );

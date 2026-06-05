@@ -2,13 +2,258 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-/* Вместо @tailwind */
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    transition:
+      background-color 0.45s ease,
+      color 0.45s ease;
+  }
+
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition:
+      background-color 0.45s ease,
+      border-color 0.45s ease,
+      color 0.45s ease,
+      fill 0.45s ease,
+      stroke 0.45s ease,
+      box-shadow 0.45s ease !important;
+  }
+
+  :root {
+    --page-from: 248 250 252;
+    --page-via: 241 245 249;
+    --page-to: 224 231 255;
+    --accent-soft: 224 242 254;
+  }
+
+  .dark {
+    --page-from: 2 6 23;
+    --page-via: 15 23 42;
+    --page-to: 15 23 42;
+    --accent-soft: 30 41 59;
+  }
+
+  body {
+    @apply antialiased;
   }
 }
 
-* {
-  box-sizing: border-box;
+@layer components {
+  /* Телефон: почти на всю ширину → планшет → ноутбук → широкий монитор */
+  .app-container {
+    @apply w-full mx-auto;
+    @apply px-4 sm:px-6 md:px-8;
+    @apply max-w-[100%] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl;
+  }
+
+  .app-tabs {
+    @apply flex gap-1 p-1 rounded-xl;
+    @apply bg-slate-200/80 dark:bg-slate-800/80;
+    @apply border border-slate-300/50 dark:border-slate-700/50;
+    @apply w-full sm:w-auto;
+  }
+
+  .app-tabs-btn {
+    @apply flex-1 sm:flex-none whitespace-nowrap;
+    @apply px-3 sm:px-4 lg:px-5 py-2 lg:py-2.5 text-sm lg:text-base;
+    @apply rounded-lg transition-colors;
+  }
+
+  .page-shell {
+    @apply min-h-screen text-slate-800 dark:text-slate-100;
+    background: linear-gradient(
+      145deg,
+      rgb(var(--page-from)) 0%,
+      rgb(var(--page-via)) 45%,
+      rgb(var(--page-to)) 100%
+    );
+  }
+
+  .card-shell {
+    @apply rounded-2xl border border-slate-200/90 dark:border-slate-700/60 bg-white/95 dark:bg-slate-900/90 shadow-md dark:shadow-lg backdrop-blur-sm;
+  }
+
+  .text-heading {
+    @apply text-slate-900 dark:text-white font-semibold;
+  }
+
+  .text-muted {
+    @apply text-slate-600 dark:text-slate-400;
+  }
+
+  .text-body {
+    @apply text-slate-700 dark:text-slate-200;
+  }
+
+  .input-field {
+    @apply w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/40;
+  }
+
+  .btn-primary {
+    @apply rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-medium transition-colors disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800/50 text-slate-700 dark:text-slate-200 hover:border-sky-400 transition-colors;
+  }
+
+  .link-accent {
+    @apply text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300;
+  }
+
+  .list-item-shell {
+    @apply rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/50;
+  }
+
+  .section-title {
+    @apply text-lg font-medium text-heading;
+  }
+
+  .badge-soft {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200;
+  }
+
+  .violation-badge {
+    @apply text-xs px-2 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-100;
+  }
+
+  .avatar-ring-gold {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b, #fcd34d, #fbbf24);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.45);
+  }
+
+  .avatar-ring-silver {
+    background: linear-gradient(135deg, #e2e8f0, #94a3b8, #f8fafc, #cbd5e1);
+    box-shadow: 0 0 10px rgba(148, 163, 184, 0.35);
+  }
+
+  .avatar-ring-bronze {
+    background: linear-gradient(135deg, #d97706, #b45309, #f59e0b, #92400e);
+    box-shadow: 0 0 10px rgba(217, 119, 6, 0.35);
+  }
+
+  .avatar-ring-teal {
+    background: linear-gradient(135deg, #2dd4bf, #0d9488, #5eead4, #14b8a6);
+  }
+
+  .avatar-ring-violet {
+    background: linear-gradient(135deg, #a78bfa, #7c3aed, #c4b5fd, #8b5cf6);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.35);
+  }
+
+  .avatar-ring-legend {
+    background: linear-gradient(
+      135deg,
+      #f472b6,
+      #a78bfa,
+      #38bdf8,
+      #fbbf24,
+      #f472b6
+    );
+    background-size: 200% 200%;
+    animation: legend-ring 4s ease infinite;
+    box-shadow: 0 0 14px rgba(167, 139, 250, 0.5);
+  }
+
+  @keyframes legend-ring {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Обводка аватара администратора — светящееся кольцо */
+  .admin-ring-glow {
+    background: linear-gradient(135deg, var(--ring-a), var(--ring-b), var(--ring-c));
+    box-shadow:
+      0 0 10px var(--ring-glow),
+      0 0 18px var(--ring-glow-soft);
+  }
+
+  .admin-ring-white {
+    --ring-a: #f8fafc;
+    --ring-b: #e2e8f0;
+    --ring-c: #ffffff;
+    --ring-glow: rgba(248, 250, 252, 0.85);
+    --ring-glow-soft: rgba(226, 232, 240, 0.45);
+  }
+  .admin-ring-blue {
+    --ring-a: #60a5fa;
+    --ring-b: #2563eb;
+    --ring-c: #1d4ed8;
+    --ring-glow: rgba(37, 99, 235, 0.75);
+    --ring-glow-soft: rgba(96, 165, 250, 0.35);
+  }
+  .admin-ring-sky {
+    --ring-a: #7dd3fc;
+    --ring-b: #0ea5e9;
+    --ring-c: #0284c7;
+    --ring-glow: rgba(14, 165, 233, 0.75);
+    --ring-glow-soft: rgba(125, 211, 252, 0.35);
+  }
+  .admin-ring-green {
+    --ring-a: #4ade80;
+    --ring-b: #16a34a;
+    --ring-c: #15803d;
+    --ring-glow: rgba(34, 197, 94, 0.7);
+    --ring-glow-soft: rgba(74, 222, 128, 0.35);
+  }
+  .admin-ring-red {
+    --ring-a: #f87171;
+    --ring-b: #dc2626;
+    --ring-c: #b91c1c;
+    --ring-glow: rgba(239, 68, 68, 0.7);
+    --ring-glow-soft: rgba(248, 113, 113, 0.35);
+  }
+  .admin-ring-orange {
+    --ring-a: #fdba74;
+    --ring-b: #ea580c;
+    --ring-c: #c2410c;
+    --ring-glow: rgba(249, 115, 22, 0.7);
+    --ring-glow-soft: rgba(253, 186, 116, 0.35);
+  }
+  .admin-ring-purple {
+    --ring-a: #c4b5fd;
+    --ring-b: #7c3aed;
+    --ring-c: #6d28d9;
+    --ring-glow: rgba(124, 58, 237, 0.7);
+    --ring-glow-soft: rgba(196, 181, 253, 0.35);
+  }
+  .admin-ring-teal {
+    --ring-a: #5eead4;
+    --ring-b: #0d9488;
+    --ring-c: #0f766e;
+    --ring-glow: rgba(20, 184, 166, 0.7);
+    --ring-glow-soft: rgba(94, 234, 212, 0.35);
+  }
+  .admin-ring-gold {
+    --ring-a: #fde68a;
+    --ring-b: #f59e0b;
+    --ring-c: #d97706;
+    --ring-glow: rgba(245, 158, 11, 0.75);
+    --ring-glow-soft: rgba(253, 230, 138, 0.35);
+  }
+  .admin-ring-rose {
+    --ring-a: #fda4af;
+    --ring-b: #e11d48;
+    --ring-c: #be123c;
+    --ring-glow: rgba(244, 63, 94, 0.7);
+    --ring-glow-soft: rgba(253, 164, 175, 0.35);
+  }
+
+  .global-theme-toggle {
+    @apply fixed top-4 right-4 z-[120];
+    @apply flex items-center justify-center;
+    @apply h-10 w-10 rounded-full;
+    @apply border border-slate-300/80 dark:border-slate-600/80;
+    @apply bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-lg;
+    @apply text-lg hover:scale-105 active:scale-95;
+    transition: transform 0.2s ease, background-color 0.45s ease, border-color 0.45s ease;
+  }
 }

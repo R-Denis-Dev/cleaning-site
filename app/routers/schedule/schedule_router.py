@@ -1,23 +1,24 @@
 from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+
 from app.database import get_db
+from app.dependencies import get_current_apartment_member, get_current_user
 from app.models.schedule.models import Schedule
 from app.models.schedule.schemas import ScheduleResponse
 from app.models.users.models import User
-from app.dependencies import get_current_user, get_current_apartment_member
+from app.services.notify import notify_event
+from app.utils.week import week_start
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
 
-def seed_week_if_empty(db: Session, apartment_id: int):
-    today = date.today()
-    week_start = today
-
+def seed_week_if_empty(db: Session, apartment_id: int, ws: date) -> None:
     exists = (
         db.query(Schedule)
         .filter(
-            Schedule.week_start == week_start,
+            Schedule.week_start == ws,
             Schedule.apartment_id == apartment_id,
         )
         .first()
@@ -26,40 +27,46 @@ def seed_week_if_empty(db: Session, apartment_id: int):
         return
 
     for i in range(7):
-        db.add(Schedule(day_of_week=i, week_start=week_start, apartment_id=apartment_id))
+        db.add(
+            Schedule(day_of_week=i, week_start=ws, apartment_id=apartment_id)
+        )
     db.commit()
+
+
+def _schedule_to_response(schedule: Schedule, today: date) -> ScheduleResponse:
+    return ScheduleResponse(
+        id=schedule.id,
+        day_of_week=schedule.day_of_week,
+        user_id=schedule.user_id,
+        username=schedule.user.username if schedule.user else None,
+        is_taken=schedule.is_taken,
+        week_start=schedule.week_start,
+        is_today=schedule.week_start == week_start(today)
+        and schedule.day_of_week == today.weekday(),
+    )
 
 
 @router.get("/", response_model=list[ScheduleResponse])
 def get_schedule(
     db: Session = Depends(get_db),
-    member = Depends(get_current_apartment_member),
+    member=Depends(get_current_apartment_member),
 ):
-    seed_week_if_empty(db, member.apartment_id)
     today = date.today()
+    ws = week_start(today)
+    seed_week_if_empty(db, member.apartment_id, ws)
 
     schedules = (
         db.query(Schedule)
         .options(joinedload(Schedule.user))
         .filter(
-            Schedule.week_start == today,
+            Schedule.week_start == ws,
             Schedule.apartment_id == member.apartment_id,
         )
         .order_by(Schedule.day_of_week)
         .all()
     )
 
-    return [
-        ScheduleResponse(
-            id=s.id,
-            day_of_week=s.day_of_week,
-            user_id=s.user_id,
-            username=s.user.username if s.user else None,
-            is_taken=s.is_taken,
-            week_start=s.week_start,
-        )
-        for s in schedules
-    ]
+    return [_schedule_to_response(s, today) for s in schedules]
 
 
 @router.post("/{schedule_id}/take", response_model=ScheduleResponse)
@@ -67,7 +74,7 @@ def take_schedule(
     schedule_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    member = Depends(get_current_apartment_member),
+    member=Depends(get_current_apartment_member),
 ):
     schedule = (
         db.query(Schedule)
@@ -79,10 +86,10 @@ def take_schedule(
         .first()
     )
     if not schedule:
-        raise HTTPException(404, "День не найден")
+        raise HTTPException(404, detail="День не найден")
 
     if schedule.is_taken and schedule.user_id != current_user.id:
-        raise HTTPException(400, "Этот день уже занят другим пользователем")
+        raise HTTPException(400, detail="Этот день уже занят другим жильцом")
 
     existing = (
         db.query(Schedule)
@@ -102,14 +109,14 @@ def take_schedule(
     db.commit()
     db.refresh(schedule)
 
-    return ScheduleResponse(
-        id=schedule.id,
-        day_of_week=schedule.day_of_week,
-        user_id=schedule.user_id,
-        username=schedule.user.username if schedule.user else None,
-        is_taken=schedule.is_taken,
-        week_start=schedule.week_start,
+    notify_event(
+        "schedule_taken",
+        f"{current_user.username} занял день уборки",
+        apartment_id=member.apartment_id,
+        data={"schedule_id": schedule.id, "day_of_week": schedule.day_of_week},
     )
+
+    return _schedule_to_response(schedule, date.today())
 
 
 @router.post("/{schedule_id}/release", response_model=ScheduleResponse)
@@ -117,7 +124,7 @@ def release_schedule(
     schedule_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    member = Depends(get_current_apartment_member),
+    member=Depends(get_current_apartment_member),
 ):
     schedule = (
         db.query(Schedule)
@@ -129,22 +136,21 @@ def release_schedule(
         .first()
     )
     if not schedule:
-        raise HTTPException(404, "День не найден")
+        raise HTTPException(404, detail="День не найден")
 
-    # освободить может только тот, кто занимает день
     if schedule.user_id != current_user.id:
-        raise HTTPException(400, "Вы не можете освободить этот день")
+        raise HTTPException(400, detail="Вы не можете освободить этот день")
 
     schedule.user_id = None
     schedule.is_taken = False
     db.commit()
     db.refresh(schedule)
 
-    return ScheduleResponse(
-        id=schedule.id,
-        day_of_week=schedule.day_of_week,
-        user_id=schedule.user_id,
-        username=schedule.user.username if schedule.user else None,
-        is_taken=schedule.is_taken,
-        week_start=schedule.week_start,
+    notify_event(
+        "schedule_released",
+        f"{current_user.username} освободил день уборки",
+        apartment_id=member.apartment_id,
+        data={"schedule_id": schedule.id, "day_of_week": schedule.day_of_week},
     )
+
+    return _schedule_to_response(schedule, date.today())
