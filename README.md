@@ -1,93 +1,502 @@
-# Cleaning Room
+# Каллисто (Cleaning App)
 
+**Веб-платформа для управления уборкой и бытом в общежитии кампуса.**
 
+| | |
+|---|---|
+| **Backend** | FastAPI 2.0, SQLAlchemy, SQLite / PostgreSQL |
+| **Frontend** | React 18, TypeScript, Vite 7, Tailwind CSS |
+| **Языки документации** | [Русский](#русский) · [English](#english) |
 
-## Getting started
+Подробный текст для презентации: [`PRESENTATION.md`](PRESENTATION.md)
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+---
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Русский
 
-## Add your files
+### О проекте
 
-* [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+**Каллисто** — цифровая система для резидентов общежития и администрации кампуса. Заменяет таблицы в чатах и бумажные графики единым сервисом: расписание дежурств, чек-листы уборки, рейтинги, проверки, объявления и админ-панель.
+
+**Охват:** корпуса **C1, C2, R1–R6**, квартиры до **8 жильцов**.
+
+### Роли
+
+| Роль | Описание |
+|------|----------|
+| **Жилец** | Расписание, чек-лист, обмен днями, рейтинг, профиль, уведомления |
+| **Ответственный (manager)** | Всё жильца + настройка задач, шаблоны, исключение соседей |
+| **Администратор** | Жители, квартиры, проверки, нарушения, мероприятия, доп. задания, CSV-отчёты |
+
+Администраторы **не заселяются** в квартиры — только управление кампусом (`/admin`).
+
+### Основной функционал
+
+#### Жильцы (`/dashboard`)
+
+- **Уборка:** недельное расписание (занять / освободить день), чек-лист (лёгкая / генеральная уборка), прогресс %, лимит уборок в неделю, фото, комментарии к задачам
+- **Обмен днями** между соседями (запрос / принять / отклонить)
+- **Напоминания** и **история уборок** по квартире
+- **Квартира:** заселение, переселение, поиск, описание, аватар, просмотр проверок
+- **Рейтинг** жильцов и квартир (фильтр по корпусу)
+- **Уведомления:** мероприятия, доп. задания от админа (WebSocket)
+- **Профиль:** ФИО, аватар, рамки за достижения, смена пароля
+
+#### Ответственный за квартиру
+
+- Настройка типа уборки и **своих шаблонов** задач
+- Исключение жильца из квартиры
+- Рамка аватара квартиры
+
+#### Администратор (`/admin`)
+
+- **Жители:** поиск, разделение на админов / жителей / заблокированных, управление рейтингом, доп. задания, блокировка
+- **Квартиры:** обзор по корпусам, назначение ответственного, исключение, проверки и нарушения
+- **Мероприятия:** публикация с картинкой и push-уведомлением
+- **CSV** — выгрузка истории уборок
+- **Профиль:** цвет обводки аватара администратора
+
+### Стек технологий
+
+| Слой | Технологии |
+|------|------------|
+| API | FastAPI, Pydantic v2, Argon2, JWT |
+| БД | SQLAlchemy 2, SQLite (dev), PostgreSQL (prod) |
+| Real-time | WebSocket (`/api/v1/ws`) |
+| Frontend | React 18, React Router, Axios, react-hot-toast |
+| Стили | Tailwind CSS 3 |
+| Тесты | pytest, GitHub Actions CI |
+| Опционально | Sentry, SlowAPI (rate limit), Telegram-бот |
+
+### Структура репозитория
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/denisromanov601-group/cleaning-room.git
-git branch -M main
-git push -uf origin main
+├── app/                    # Backend (FastAPI)
+│   ├── main.py             # Точка входа, CORS, роутеры
+│   ├── config.py           # Настройки из .env
+│   ├── database.py         # БД и миграции
+│   ├── routers/            # API: users, housing, tasks, schedule, admin…
+│   ├── models/             # SQLAlchemy-модели и Pydantic-схемы
+│   ├── services/           # Бизнес-логика
+│   └── telegram_bot/       # Опциональный Telegram-бот
+├── frontend/               # React SPA (Vite)
+│   └── src/
+├── tests/                  # pytest
+├── scripts/                # Утилиты (сброс БД, демо-данные, админы)
+├── .env.example            # Пример переменных backend
+├── PRESENTATION.md         # Материал для презентации
+└── requirements.txt
 ```
 
-## Integrate with your tools
+### Требования
 
-* [Set up project integrations](https://gitlab.com/denisromanov601-group/cleaning-room/-/settings/integrations)
+- **Python** 3.12+
+- **Node.js** 20+
+- **npm** 10+
 
-## Collaborate with your team
+### Быстрый старт
 
-* [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+#### 1. Клонирование и окружение
 
-## Test and Deploy
+```bash
+git clone <url-репозитория>
+cd "Cleaning App ( Приложения для отметки уборки )"
 
-Use the built-in continuous integration in GitLab.
+# Backend
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux / macOS:
+source .venv/bin/activate
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+pip install -r requirements.txt
 
-***
+# Frontend
+cd frontend
+npm ci
+cd ..
+```
 
-# Editing this README
+#### 2. Переменные окружения
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
 
-## Suggestions for a good README
+Минимум в `.env`:
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```env
+SECRET_KEY=your-secret-key
+ADMIN_USERNAMES=Admin,Admin1
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
 
-## Name
-Choose a self-explaining name for your project.
+#### 3. База данных и администратор
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+**Вариант A — чистая БД с админами:**
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```bash
+python scripts/reset_database.py
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+Создаются:
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+| Логин | Пароль | Email |
+|-------|--------|-------|
+| `Admin` | `Admin123` | admin@kallisto.example.com |
+| `Admin1` | `Admin1234` | admin1@kallisto.example.com |
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+**Вариант B — демо-жильцы (после reset или на существующей БД):**
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+python scripts/seed_demo_data.py          # добавить жильцов
+python scripts/seed_demo_data.py --fresh  # удалить не-админов и заполнить заново
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Пароль всех демо-жильцов: **`Resident123`**
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+**Добавить администратора:**
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+```bash
+python scripts/add_admin.py --username MyAdmin --password MyPass123
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Логин нужно добавить в `ADMIN_USERNAMES` в `.env` и **перезапустить** backend.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+#### 4. Запуск
 
-## License
-For open source projects, say how it is licensed.
+**Терминал 1 — Backend:**
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Терминал 2 — Frontend:**
+
+```bash
+cd frontend
+npm run dev
+```
+
+| Сервис | URL |
+|--------|-----|
+| Приложение | http://localhost:5173 |
+| API | http://localhost:8000/api/v1 |
+| Swagger (документация API) | http://localhost:8000/docs |
+| Health check | http://localhost:8000/api/v1/health |
+
+Вход администратора → редирект на `/admin`.  
+Вход жильца → `/dashboard`.
+
+### Переменные окружения (backend)
+
+| Переменная | Описание | По умолчанию |
+|------------|----------|--------------|
+| `SECRET_KEY` | Ключ JWT | dev-secret (сменить в prod!) |
+| `DATABASE_URL` | SQLite или PostgreSQL | `sqlite:///./app/database.db` |
+| `ADMIN_USERNAMES` | Логины админов через запятую | — |
+| `CORS_ORIGINS` | Разрешённые origin для CORS | localhost:5173 |
+| `MAX_CLEANINGS_PER_WEEK` | Лимит засчитанных уборок | `2` |
+| `UPLOADS_DIR` | Папка загрузок (аватары, фото) | `uploads` |
+| `SMTP_*` | Почта для сброса пароля | — |
+| `EXPOSE_RESET_TOKEN` | Показывать код сброса в UI (dev) | `true` |
+| `SENTRY_DSN` | Мониторинг ошибок | — |
+| `TELEGRAM_BOT_TOKEN` | Telegram-бот | — |
+| `PUBLIC_APP_URL` | URL фронтенда для бота | — |
+
+### API (кратко)
+
+Префикс: `/api/v1`
+
+| Группа | Примеры |
+|--------|---------|
+| `users` | регистрация, login, профиль, рейтинг, бонусы |
+| `housing` | корпуса, квартиры, жильцы, поиск |
+| `schedules` | расписание недели, занять/освободить |
+| `tasks` | чек-лист по дню, шаблоны |
+| `reports` | история, пропуски, напоминания, CSV (admin) |
+| `announcements` | мероприятия |
+| `extras` | обмен днями, комментарии, фото уборки |
+| `admin` | жители, квартиры, проверки, блокировки |
+
+### Тесты
+
+```bash
+pytest -q
+```
+
+CI (GitHub Actions): `pytest` + `npm ci` + `npm run build` в `frontend/`.
+
+### Сборка production (frontend)
+
+```bash
+cd frontend
+npm run build
+# Артефакты: frontend/dist/
+```
+
+### Telegram-бот (опционально)
+
+```bash
+# В .env: TELEGRAM_BOT_TOKEN=...  PUBLIC_APP_URL=http://localhost:5173
+python -m app.telegram_bot.bot
+```
+
+Подробнее: [`app/telegram_bot/README.md`](app/telegram_bot/README.md)
+
+### Скрипты
+
+| Скрипт | Назначение |
+|--------|------------|
+| `scripts/reset_database.py` | Полный сброс БД + 2 админа |
+| `scripts/seed_demo_data.py` | Демо-жильцы в корпусах C1–R5 |
+| `scripts/add_admin.py` | Создать / обновить администратора |
+| `scripts/fix_admin_email.py` | Исправить некорректные email админов |
+
+### Лицензия
+
+Проект разрабатывается как учебный / внутренний продукт кампуса. Уточните лицензию у владельца репозитория.
+
+---
+
+## English
+
+### About
+
+**Kallisto (Cleaning App)** is a web platform for dormitory residents and campus administration. It replaces chat spreadsheets and paper schedules with a single service: duty rosters, cleaning checklists, ratings, inspections, announcements, and an admin panel.
+
+**Scope:** buildings **C1, C2, R1–R6**, apartments with up to **8 residents** each.
+
+### Roles
+
+| Role | Description |
+|------|-------------|
+| **Resident** | Schedule, checklist, day swaps, leaderboard, profile, notifications |
+| **Manager** | All resident features + task templates, apartment settings, member removal |
+| **Administrator** | Residents, apartments, inspections, violations, events, bonus tasks, CSV export |
+
+Administrators **do not join** apartments — campus management only (`/admin`).
+
+### Key features
+
+#### Residents (`/dashboard`)
+
+- **Cleaning:** weekly schedule (take/release slots), checklist (light/general cleaning), progress %, weekly cleaning limit, photos, task comments
+- **Day swap** requests between roommates
+- **Reminders** and **cleaning history** per apartment
+- **Apartment:** join, move, search, description, avatar, view inspections
+- **Leaderboard** for residents and apartments (filter by building)
+- **Notifications:** campus events, admin bonus tasks (WebSocket)
+- **Profile:** display name, avatar, achievement frames, password change
+
+#### Apartment manager
+
+- Cleaning mode and **custom task templates**
+- Remove a roommate from the apartment
+- Apartment avatar frame
+
+#### Administrator (`/admin`)
+
+- **Residents:** search, admins/residents/blocked lists, rating edits, bonus tasks, block/unblock
+- **Apartments:** overview by building, assign manager, kick member, inspections & violations
+- **Events:** publish with image and real-time notification
+- **CSV** cleaning history export
+- **Profile:** admin avatar ring color
+
+### Tech stack
+
+| Layer | Technologies |
+|-------|--------------|
+| API | FastAPI, Pydantic v2, Argon2, JWT |
+| DB | SQLAlchemy 2, SQLite (dev), PostgreSQL (prod) |
+| Real-time | WebSocket (`/api/v1/ws`) |
+| Frontend | React 18, React Router, Axios, react-hot-toast |
+| Styling | Tailwind CSS 3 |
+| Tests | pytest, GitHub Actions CI |
+| Optional | Sentry, SlowAPI (rate limit), Telegram bot |
+
+### Repository structure
+
+```
+├── app/                    # Backend (FastAPI)
+│   ├── main.py             # Entry point, CORS, routers
+│   ├── config.py           # Settings from .env
+│   ├── database.py         # DB and migrations
+│   ├── routers/            # API: users, housing, tasks, schedule, admin…
+│   ├── models/             # SQLAlchemy models & Pydantic schemas
+│   ├── services/           # Business logic
+│   └── telegram_bot/       # Optional Telegram bot
+├── frontend/               # React SPA (Vite)
+├── tests/                  # pytest
+├── scripts/                # DB reset, demo data, admins
+├── .env.example
+├── PRESENTATION.md         # Presentation material
+└── requirements.txt
+```
+
+### Requirements
+
+- **Python** 3.12+
+- **Node.js** 20+
+- **npm** 10+
+
+### Quick start
+
+#### 1. Clone and setup
+
+```bash
+git clone <repository-url>
+cd cleaning-app
+
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux / macOS:
+source .venv/bin/activate
+
+pip install -r requirements.txt
+
+cd frontend
+npm ci
+cd ..
+```
+
+#### 2. Environment
+
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+Minimum `.env`:
+
+```env
+SECRET_KEY=your-secret-key
+ADMIN_USERNAMES=Admin,Admin1
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+#### 3. Database and admins
+
+**Option A — fresh DB with default admins:**
+
+```bash
+python scripts/reset_database.py
+```
+
+| Username | Password | Email |
+|----------|----------|-------|
+| `Admin` | `Admin123` | admin@kallisto.example.com |
+| `Admin1` | `Admin1234` | admin1@kallisto.example.com |
+
+**Option B — demo residents:**
+
+```bash
+python scripts/seed_demo_data.py          # append demo users
+python scripts/seed_demo_data.py --fresh  # wipe non-admins and re-seed
+```
+
+Demo resident password: **`Resident123`**
+
+**Add an administrator:**
+
+```bash
+python scripts/add_admin.py --username MyAdmin --password MyPass123
+```
+
+Add the username to `ADMIN_USERNAMES` in `.env` and **restart** the backend.
+
+#### 4. Run
+
+**Terminal 1 — Backend:**
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Terminal 2 — Frontend:**
+
+```bash
+cd frontend
+npm run dev
+```
+
+| Service | URL |
+|---------|-----|
+| App | http://localhost:5173 |
+| API | http://localhost:8000/api/v1 |
+| Swagger | http://localhost:8000/docs |
+| Health | http://localhost:8000/api/v1/health |
+
+Admin login → redirect to `/admin`.  
+Resident login → `/dashboard`.
+
+### Environment variables (backend)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SECRET_KEY` | JWT secret | change in production |
+| `DATABASE_URL` | SQLite or PostgreSQL | `sqlite:///./app/database.db` |
+| `ADMIN_USERNAMES` | Comma-separated admin logins | — |
+| `CORS_ORIGINS` | Allowed CORS origins | localhost:5173 |
+| `MAX_CLEANINGS_PER_WEEK` | Weekly cleaning credit limit | `2` |
+| `UPLOADS_DIR` | Uploads folder | `uploads` |
+| `SMTP_*` | Email for password reset | — |
+| `EXPOSE_RESET_TOKEN` | Show reset code in UI (dev) | `true` |
+| `SENTRY_DSN` | Error monitoring | — |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot | — |
+| `PUBLIC_APP_URL` | Frontend URL for bot | — |
+
+### API overview
+
+Prefix: `/api/v1`
+
+| Group | Examples |
+|-------|----------|
+| `users` | register, login, profile, leaderboard, bonus tasks |
+| `housing` | buildings, apartments, members, search |
+| `schedules` | weekly roster, take/release |
+| `tasks` | daily checklist, templates |
+| `reports` | history, missed cleanings, reminders, CSV (admin) |
+| `announcements` | campus events |
+| `extras` | day swaps, comments, cleaning photos |
+| `admin` | residents, apartments, inspections, blocks |
+
+### Tests
+
+```bash
+pytest -q
+```
+
+CI: `pytest` + `npm ci` + `npm run build` in `frontend/`.
+
+### Production build (frontend)
+
+```bash
+cd frontend
+npm run build
+# Output: frontend/dist/
+```
+
+### Telegram bot (optional)
+
+```bash
+# .env: TELEGRAM_BOT_TOKEN=...  PUBLIC_APP_URL=http://localhost:5173
+python -m app.telegram_bot.bot
+```
+
+See [`app/telegram_bot/README.md`](app/telegram_bot/README.md).
+
+### Utility scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/reset_database.py` | Full DB reset + 2 default admins |
+| `scripts/seed_demo_data.py` | Demo residents in buildings C1–R5 |
+| `scripts/add_admin.py` | Create / update administrator |
+| `scripts/fix_admin_email.py` | Fix invalid admin emails |
+
+### License
+
+Developed as a campus / educational project. Check with the repository owner for licensing terms.
